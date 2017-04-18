@@ -142,3 +142,83 @@ describe('Shopping List', function() {
       });
   });
 });
+
+describe('recipes', function() {
+
+  before(function() {
+    return runServer();
+  });
+
+  after(function() {
+    return closeServer();
+  });
+
+  it('should list recipes on GET', function() {
+    return chai.request(app) 
+      .get('/recipes')
+      .then(function(res) {
+        res.should.have.status(200);
+        res.should.be.json;
+        res.body.should.be.a('array');
+        res.body.forEach(function(item) {
+          item.should.be.a('object');
+          item.should.include.all.keys('name', 'ingredients');
+        });
+      });
+
+  });
+
+  it('should add recipe on post', function() {
+    const newItem = {
+      name: 'spaghetti',
+      ingredients: ['pasta', 'sauce']
+    }
+
+    return chai.request(app)
+      .post('/recipes')
+      .send(newItem)
+      .then(function(res) {
+        res.should.have.status(201);
+        res.should.be.json;
+        res.body.should.be.a('object');
+        res.body.should.include.all.keys('name', 'ingredients');
+        res.body.id.should.not.be.null;
+        res.body.should.deep.equal(Object.assign(newItem , {id: res.body.id}));
+      });
+  });
+
+  it('should update item on PUT', function() {
+    const updatedItem = {
+      name: 'spaghetti with meatballs',
+      ingredients: ['pasta', 'sauce', 'meatballs']
+    }
+
+    return chai.request(app)
+      .get('/recipes')
+      .then(function(res) {
+        updatedItem.id = res.body[0].id;
+        return chai.request(app) 
+          .put(`/recipes/${updatedItem.id}`)
+          .send(updatedItem)
+      })
+
+      .then(function(res) {
+        res.should.have.status(200);
+        res.should.be.json;
+        res.body.should.be.a('object');
+        res.body.should.deep.equal(updatedItem);
+      });
+  });
+
+  it('should delete on DELETE', function() {
+    return chai.request(app)
+      .get('/recipes')
+      .then(function(res) {
+        return chai.request(app)
+          .delete(`/recipes/${res.body[0].id}`)
+      })
+      .then(function(res) {
+        res.should.have.status(204);
+      });
+  });
+});
